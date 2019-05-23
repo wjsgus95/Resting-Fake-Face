@@ -1,7 +1,9 @@
 
 INPUT_SIZE = 128
 
-trainset_dir = "./trainset"
-fake_dir = trainset_dir + "/Fake"
-true_dir = trainset_dir + "/True"
-gan_dir  = trainset_dir + "/gan"
+TRAINSET_DIR = "./trainset"
+FAKE_DIR = TRAINSET_DIR + "/Fake"
+TRUE_DIR = TRAINSET_DIR + "/True"
+GAN_DIR  = TRAINSET_DIR + "/gan"
+
+
