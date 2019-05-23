@@ -22,9 +22,9 @@ optimize_getter = lambda m, m_lr: optim.Adam(m.parameters(), lr=m_lr)
 
 # Dataset
 #train_dataset = torchvision.datasets.FashionMNIST("./", train=True, transform=transforms.ToTensor(), download=True)
-train_dataset = torchvision.datasets.ImageFolder( root=GAN_DIR, transform=torchvision.transforms.ToTensor())
+train_dataset = torchvision.datasets.ImageFolder( root=TRAINSET_DIR, transform=torchvision.transforms.ToTensor())
 #test_dataset = torchvision.datasets.FashionMNIST("./", train=False, transform=transforms.ToTensor())
-test_dataset = torchvision.datasets.ImageFolder( root=REAL_DIR, transform=torchvision.transforms.ToTensor())
+test_dataset = torchvision.datasets.ImageFolder( root=TRAINSET_DIR, transform=torchvision.transforms.ToTensor())
 
 # Data loader
 train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
