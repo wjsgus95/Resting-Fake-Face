@@ -36,7 +36,7 @@ class RFF(torch.nn.Module):
         super(RFF, self).__init__()
         self.relu = nn.ReLU() 
         self.dropout = nn.Dropout()
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=1)
 
         """
         self.conv1 = torch.nn.Conv2d(in_channels=1, out_channels=6, kernel_size=5, stride=1, padding=2, bias=True)
@@ -49,25 +49,25 @@ class RFF(torch.nn.Module):
         """
 
         # Block 1
-        self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, stride=1, padding=2, bias=True)
-        self.conv2 = torch.nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding=2, bias=True)
-        self.conv3 = torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=2, bias=True)
-        self.max_pool1 = torch.nn.MaxPool2d(kernel_size=2)
+        self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, stride=1, padding=1, bias=True)
+        self.conv2 = torch.nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding=1, bias=True)
+        self.conv3 = torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1, bias=True)
+        self.max_pool1 = torch.nn.MaxPool2d(kernel_size=4)
 
         # Block 2
-        self.conv4 = torch.nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=2, bias=True)
-        self.conv5 = torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=2, bias=True)
-        self.conv6 = torch.nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=2, bias=True)
-        self.max_pool2 = torch.nn.MaxPool2d(kernel_size=2)
+        self.conv4 = torch.nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1, bias=True)
+        self.conv5 = torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1, bias=True)
+        self.conv6 = torch.nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1, bias=True)
+        self.max_pool2 = torch.nn.MaxPool2d(kernel_size=4)
 
         # Block 3
-        self.conv7 = torch.nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=2, bias=True)
-        self.conv8 = torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=2, bias=True)
+        self.conv7 = torch.nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1, bias=True)
+        self.conv8 = torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1, bias=True)
 
         # Block 4
-        self.fc1 = torch.nn.Linear(2048, 128)
-        self.batchnorm = nn.BatchNorm1d(128)
-        self.fc2 = torch.nn.Linear(128, 2)
+        self.fc1 = torch.nn.Linear(32768, 256)
+        self.batchnorm = nn.BatchNorm1d(256)
+        self.fc2 = torch.nn.Linear(256, 3)
 
         #torch.save(self, ckpt_path)
 
@@ -96,7 +96,7 @@ class RFF(torch.nn.Module):
         x = self.dropout(x)
         x = self.conv3(x)
         x = self.relu(x)
-        x = self.maxpool1(x)
+        x = self.max_pool1(x)
         x = self.dropout(x)
 
         # Block 2
@@ -108,7 +108,7 @@ class RFF(torch.nn.Module):
         x = self.dropout(x)
         x = self.conv6(x)
         x = self.relu(x)
-        x = self.maxpool2(x)
+        x = self.max_pool2(x)
         x = self.dropout(x)
 
         # Block 3
@@ -120,10 +120,15 @@ class RFF(torch.nn.Module):
         x = self.dropout(x)
 
         # Block 4
-        x = x.view(-1, 2048)
+        print(x.shape)
+        x = x.view(-1, 32768)
+        print(x.shape)
         x = self.fc1(x)
+        print(x.shape)
         x = self.relu(x)
+        print(x.shape)
         x = self.batchnorm(x)
+        print(x.shape)
         x = self.dropout(x)
         x = self.fc2(x)
         x = self.softmax(x)

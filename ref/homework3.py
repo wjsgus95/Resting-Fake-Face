@@ -205,13 +205,13 @@ def analyze_train():
 
 if __name__ == "__main__":
     # Task 1
-    fc = FC().to(device)
+    #fc = FC().to(device)
     lenet5 = LeNet5().to(device)
 
     # Train and test FC network
-    print(); print("Training/Testing FCN...")
-    fc.train()
-    fc.test()
+    #print(); print("Training/Testing FCN...")
+    #fc.train()
+    #fc.test()
 
     # Train and test Lenet-5
     print(); print("Training/Testing LeNet-5...")
@@ -220,7 +220,7 @@ if __name__ == "__main__":
     # End of Task 1
 
     # Task 2
-    print(); print("Training/Testing LeNet-5 with hyperparameter tweaks...")
-    analyze_train()
+    #print(); print("Training/Testing LeNet-5 with hyperparameter tweaks...")
+    #analyze_train()
     #TODO: print stats in csv format to plot them
     # End of Task 2
