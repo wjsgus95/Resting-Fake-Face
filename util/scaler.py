@@ -2,7 +2,7 @@
 import cv2
 
 # Only for square images
-class Downsampler():
+class Scalar():
     def __init__(self):
         pass
 
