@@ -102,3 +102,9 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+#my vs code settings
+.vscode/
+
+#the fashion dataset
+FashionMNIST/
