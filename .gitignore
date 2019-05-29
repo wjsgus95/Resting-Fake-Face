@@ -108,3 +108,5 @@ venv.bak/
 
 #the fashion dataset
 FashionMNIST/
+uniform_trainset_diff/
+testset/
