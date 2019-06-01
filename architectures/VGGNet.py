@@ -19,14 +19,14 @@ TRAINSET_DIR = "../uniform_trainset"
 FAKE_DIR = TRAINSET_DIR + "/Fake"
 TRUE_DIR = TRAINSET_DIR + "/True"
 GAN_DIR  = TRAINSET_DIR + "/gan"
-TESTSET_DIR = "../dataset"
+TESTSET_DIR = "../sample"
 
 
 # Device config
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Hyperparameters
-num_epochs = 25
+num_epochs = 1
 batch_size = 128
 learning_rate = 0.001
 loss_func = nn.CrossEntropyLoss()
@@ -91,7 +91,7 @@ class VGGNet(torch.nn.Module):
         self.softmax = torch.nn.Softmax(dim=1)
         # self.softmax = torch.nn.Softmax2d()
 
-        torch.save(self, ckpt_path)
+        # torch.save(self, ckpt_path)
 
     def forward(self, x):
         x = self.conv1_1(x)
@@ -152,6 +152,7 @@ class VGGNet(torch.nn.Module):
 
                 if (i+1) % 100 == 0:
                     print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, i+1, total_step, loss.item()))
+        torch.save(self, "/vgg.ckpt")
 
     def test(self):
         # Test the model
@@ -171,7 +172,7 @@ class VGGNet(torch.nn.Module):
 
 if __name__ == "__main__":
     vgg = VGGNet().to(device)
-    print("training")
+   
     vgg.train()
     vgg.test()
 
