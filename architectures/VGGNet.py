@@ -26,7 +26,7 @@ TESTSET_DIR = "../dataset"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Hyperparameters
-num_epochs = 10
+num_epochs = 25
 batch_size = 128
 learning_rate = 0.001
 loss_func = nn.CrossEntropyLoss()
@@ -91,7 +91,7 @@ class VGGNet(torch.nn.Module):
         self.softmax = torch.nn.Softmax(dim=1)
         # self.softmax = torch.nn.Softmax2d()
 
-        #torch.save(self, ckpt_path)
+        torch.save(self, ckpt_path)
 
     def forward(self, x):
         x = self.conv1_1(x)
