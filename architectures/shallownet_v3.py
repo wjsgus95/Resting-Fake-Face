@@ -6,6 +6,12 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torch.nn.functional as F
 import torch.optim as optim
+import numpy as np
+
+# import os,sys,inspect, cv2
+# currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+# parentdir = os.path.dirname(currentdir)
+# sys.path.insert(0, parentdir)
 
 from common.constants import *
 
@@ -57,7 +63,7 @@ class RFF(torch.nn.Module):
         # Block 4
         #self.fc1 = torch.nn.Linear(32768, 1024)
         self.fc1 = torch.nn.Linear(270848, 1024)
-        self.batchnorm = nn.BatchNorm1d(1024)
+        self.batchnorm = nn.BatchNorm2d(1024)
         self.fc2 = torch.nn.Linear(1024, 2)
         #self.fc3 = torch.nn.Linear(1024, 2)
 
@@ -109,14 +115,14 @@ class RFF(torch.nn.Module):
 
         return x
 
-    def train(self):
+    def train(self, start_epoch=0):
         ckpt_path_base = CKPT_DIR + "/shallownet_v3"
 
         optimizer = optimize_getter(self, learning_rate)
 
         # Train the model
         total_step = len(train_loader)
-        for epoch in range(num_epochs):
+        for epoch in range(start_epoch, num_epochs):
             total = 0
             correct = 0
             for i, (images, labels) in enumerate(train_loader):
@@ -148,8 +154,8 @@ class RFF(torch.nn.Module):
                     print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.4f}%'.format(epoch+1, num_epochs, i+1, total_step, loss.item(), 100*correct/total))
                     total = 0
                     correct = 0
-            if (epoch + 1) % 10 == 0:
-                torch.save(self, ckpt_path_base + f"_{epoch+1}.ckpt")
+            #if (epoch + 1) % 10 == 0:
+            torch.save(self, ckpt_path_base + f"_{epoch+1}.ckpt")
 
     def test(self):
         # Test the model
@@ -166,11 +172,66 @@ class RFF(torch.nn.Module):
 
             print(f'Accuracy of the network on the {total} test images: {100 * correct / total} %')
 
+    def test40(self):
+        #produce a batch first
+        trans = transforms.Compose([torchvision.transforms.ToTensor()])
+        images = []
+        with torch.no_grad():
+            for filename in os.listdir(TESTSET40_DIR):
+                img = cv2.imread(os.path.join(TESTSET40_DIR, filename))
+                if img is not None:
+                    img_tensor = trans(img)
+                    images.append(img_tensor)
+
+        batch = torch.stack(images, dim=0)
+
+        #run model
+        outputs = self(batch)
+
+        #produce output
+        output = ""
+        for img_num, prec in enumerate(outputs[:, 1], 1):
+            if (img_num != 1):
+                output += "\n"
+                    
+            filename = "{:04d}.jpg".format(img_num)
+            output += filename + ",{:.7f}".format(prec.item())
+                   
+        f = open("output_sn.txt","w+")
+        f.write(output)
+        f.close()
+
+# if __name__ == "__main__":
+#     #rff = RFF().to(device)
+#     #rff.train()
+#     ckpt_path = CKPT_DIR + "/shallownet_v3_20.ckpt"
+#     rff = torch.load(ckpt_path).to(device)
+#     rff.test()
+
+def find_latest_checkpoint():
+    if not os.path.exists(CKPT_DIR):
+        os.makedirs(CKPT_DIR)
+        return 0
+
+    ep = 30
+    while(not os.path.exists(CKPT_DIR + "/shallownet_v3" + f"_{ep}.ckpt")):
+        ep -= 1
+        if (ep <= 0):
+            break
+    return ep
 
 if __name__ == "__main__":
-    #rff = RFF().to(device)
-    #rff.train()
-    ckpt_path = CKPT_DIR + "/shallownet_v3_20.ckpt"
-    rff = torch.load(ckpt_path).to(device)
-    rff.test()
+    latest_checkpoint = 20#find_latest_checkpoint()
+
+    if (latest_checkpoint == 0):
+        rff = RFF().to(device)
+        rff.train()
+        rff.test()
+    else:
+        ckpt_path = CKPT_DIR + "/shallownet_v3" + f"_{latest_checkpoint}.ckpt"
+        rff = torch.load(ckpt_path, map_location='cpu').to(device)
+        #if (latest_checkpoint < num_epochs):
+            #rff.train(start_epoch=latest_checkpoint)
+        #rff.test()
+        rff.test40()
 
