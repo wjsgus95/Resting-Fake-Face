@@ -6,7 +6,10 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torch.nn.functional as F
 import torch.optim as optim
+
 import numpy as np
+import os
+import cv2
 
 # import os,sys,inspect, cv2
 # currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -20,15 +23,20 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Hyperparameters
 num_epochs = 30
-batch_size = 16
+batch_size = 32
 learning_rate = 0.004
 loss_func = nn.CrossEntropyLoss()
 # Optimize function needs nn.Module instance on construction, hence callback function is used.
 optimize_getter = lambda m, m_lr: optim.Adam(m.parameters(), lr=m_lr)
+#optimize_getter = lambda m, m_lr: optim.SGD(m.parameters(), lr=m_lr)
+
+train_transform = transforms.Compose([torchvision.transforms.RandomHorizontalFlip(),
+                                      torchvision.transforms.ColorJitter(),
+                                      torchvision.transforms.ToTensor()])
 
 # Dataset
-train_dataset = torchvision.datasets.ImageFolder( root=TRAINSET_DIR, transform=torchvision.transforms.ToTensor())
-test_dataset = torchvision.datasets.ImageFolder( root=TESTSET_DIR, transform=torchvision.transforms.ToTensor())
+train_dataset = torchvision.datasets.ImageFolder(root=TRAINSET_DIR, transform=train_transform)
+test_dataset = torchvision.datasets.ImageFolder(root=TESTSET_DIR, transform=torchvision.transforms.ToTensor())
 #train_dataset = torchvision.datasets.ImageFolder( root=PRETRAIN_DIR, transform=torchvision.transforms.ToTensor())
 #test_dataset = torchvision.datasets.ImageFolder( root=TRAINSET_DIR, transform=torchvision.transforms.ToTensor())
 
@@ -63,7 +71,7 @@ class RFF(torch.nn.Module):
         # Block 4
         #self.fc1 = torch.nn.Linear(32768, 1024)
         self.fc1 = torch.nn.Linear(270848, 1024)
-        self.batchnorm = nn.BatchNorm2d(1024)
+        self.batchnorm = nn.BatchNorm1d(1024)
         self.fc2 = torch.nn.Linear(1024, 2)
         #self.fc3 = torch.nn.Linear(1024, 2)
 
@@ -112,6 +120,7 @@ class RFF(torch.nn.Module):
         #x = self.relu(x)
         #x = self.fc3(x)
         x = self.softmax(x)
+        exit()
 
         return x
 
@@ -140,7 +149,7 @@ class RFF(torch.nn.Module):
 
                 # If L1 loss function is applied, do one hot encoding.
                 if type(loss_func) == type(nn.L1Loss()):
-                    labels = F.one_hot(labels, num_classes=10)
+                    labels = F.one_hot(labels, num_classes=2)
                     labels = labels.type(torch.FloatTensor).to(device)
                 loss = loss_func(outputs, labels)
 
@@ -183,7 +192,7 @@ class RFF(torch.nn.Module):
                     img_tensor = trans(img)
                     images.append(img_tensor)
 
-        batch = torch.stack(images, dim=0)
+        batch = torch.stack(images, dim=0).to(device)
 
         #run model
         outputs = self(batch)
@@ -221,7 +230,7 @@ def find_latest_checkpoint():
     return ep
 
 if __name__ == "__main__":
-    latest_checkpoint = 20#find_latest_checkpoint()
+    latest_checkpoint = 0#find_latest_checkpoint()
 
     if (latest_checkpoint == 0):
         rff = RFF().to(device)
@@ -229,9 +238,9 @@ if __name__ == "__main__":
         rff.test()
     else:
         ckpt_path = CKPT_DIR + "/shallownet_v3" + f"_{latest_checkpoint}.ckpt"
-        rff = torch.load(ckpt_path, map_location='cpu').to(device)
+        rff = torch.load(ckpt_path).to(device)
         #if (latest_checkpoint < num_epochs):
             #rff.train(start_epoch=latest_checkpoint)
-        #rff.test()
+        rff.test()
         rff.test40()
 

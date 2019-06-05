@@ -53,27 +53,25 @@ class RFF(torch.nn.Module):
         self.softmax = nn.Softmax(dim=1)
 
         # Block 1
-        self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, stride=1, padding=0, bias=True)
-        self.conv2 = torch.nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding=0, bias=True)
-        self.conv3 = torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=0, bias=True)
+        self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=128, kernel_size=5, stride=2, padding=1, bias=True)
+        self.conv2 = torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1, bias=True)
+        self.conv3 = torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1, bias=True)
         self.max_pool1 = torch.nn.MaxPool2d(kernel_size=2)
 
         # Block 2
-        self.conv4 = torch.nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=0, bias=True)
-        self.conv5 = torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=0, bias=True)
-        self.conv6 = torch.nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=0, bias=True)
+        self.conv4 = torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=5, stride=2, padding=1, bias=True)
+        self.conv5 = torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1, bias=True)
+        self.conv6 = torch.nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1, bias=True)
         self.max_pool2 = torch.nn.MaxPool2d(kernel_size=2)
 
         # Block 3
-        self.conv7 = torch.nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=0, bias=True)
-        self.conv8 = torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=0, bias=True)
+        self.conv7 = torch.nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1, bias=True)
+        self.conv8 = torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1, bias=True)
 
         # Block 4
-        #self.fc1 = torch.nn.Linear(32768, 1024)
-        self.fc1 = torch.nn.Linear(270848, 1024)
-        self.batchnorm = nn.BatchNorm1d(1024)
-        self.fc2 = torch.nn.Linear(1024, 2)
-        #self.fc3 = torch.nn.Linear(1024, 2)
+        self.fc1 = torch.nn.Linear(25088, 4096)
+        self.batchnorm = nn.BatchNorm1d(4096)
+        self.fc2 = torch.nn.Linear(4096, 2)
 
         #torch.save(self, ckpt_path)
 
@@ -111,16 +109,14 @@ class RFF(torch.nn.Module):
         x = self.dropout(x)
 
         # Block 4
-        x = x.view(-1, 270848)
+        x = x.view(-1, 25088)
         x = self.fc1(x)
         x = self.relu(x)
         x = self.batchnorm(x)
         x = self.dropout(x)
         x = self.fc2(x)
-        #x = self.relu(x)
-        #x = self.fc3(x)
+        x = self.relu(x)
         x = self.softmax(x)
-        exit()
 
         return x
 
@@ -147,10 +143,12 @@ class RFF(torch.nn.Module):
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
 
+                """
                 # If L1 loss function is applied, do one hot encoding.
                 if type(loss_func) == type(nn.L1Loss()):
                     labels = F.one_hot(labels, num_classes=2)
                     labels = labels.type(torch.FloatTensor).to(device)
+                """
                 loss = loss_func(outputs, labels)
 
                 # Backward and optimize
@@ -163,8 +161,7 @@ class RFF(torch.nn.Module):
                     print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.4f}%'.format(epoch+1, num_epochs, i+1, total_step, loss.item(), 100*correct/total))
                     total = 0
                     correct = 0
-            #if (epoch + 1) % 10 == 0:
-            torch.save(self, ckpt_path_base + f"_{epoch+1}.ckpt")
+                    torch.save(self, ckpt_path_base + f"_{epoch+1}.ckpt")
 
     def test(self):
         # Test the model
@@ -210,13 +207,6 @@ class RFF(torch.nn.Module):
         f.write(output)
         f.close()
 
-# if __name__ == "__main__":
-#     #rff = RFF().to(device)
-#     #rff.train()
-#     ckpt_path = CKPT_DIR + "/shallownet_v3_20.ckpt"
-#     rff = torch.load(ckpt_path).to(device)
-#     rff.test()
-
 def find_latest_checkpoint():
     if not os.path.exists(CKPT_DIR):
         os.makedirs(CKPT_DIR)
@@ -230,7 +220,7 @@ def find_latest_checkpoint():
     return ep
 
 if __name__ == "__main__":
-    latest_checkpoint = 0#find_latest_checkpoint()
+    latest_checkpoint = 30  #find_latest_checkpoint()
 
     if (latest_checkpoint == 0):
         rff = RFF().to(device)
@@ -239,8 +229,6 @@ if __name__ == "__main__":
     else:
         ckpt_path = CKPT_DIR + "/shallownet_v3" + f"_{latest_checkpoint}.ckpt"
         rff = torch.load(ckpt_path).to(device)
-        #if (latest_checkpoint < num_epochs):
-            #rff.train(start_epoch=latest_checkpoint)
         rff.test()
         rff.test40()
 
