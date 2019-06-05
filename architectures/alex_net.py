@@ -12,7 +12,9 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
+import common.dataloader
 from common.constants import *
+
 INPUT_SIZE = 128
 
 #TRAINSET_DIR = "./uniform_trainset_diff"
@@ -36,7 +38,8 @@ optimize_getter = lambda m, m_lr: optim.SGD(m.parameters(), lr=m_lr, momentum=0.
 
 # Dataset
 train_dataset = torchvision.datasets.ImageFolder( root=TRAINSET_DIR, transform=torchvision.transforms.ToTensor())
-test_dataset = torchvision.datasets.ImageFolder( root=TESTSET_DIR, transform=torchvision.transforms.ToTensor())
+#test_dataset = torchvision.datasets.ImageFolder( root=TESTSET_DIR, transform=torchvision.transforms.ToTensor())
+test_dataset = common.dataloader.TestDataSet(root=TESTSET_DIR, transform=torchvision.transforms.ToTensor())
 #test40_dataset = torchvision.datasets.ImageFolder( root=TESTSET40_DIR, transform=torchvision.transforms.ToTensor())
 
 #train_dataset = torchvision.datasets.ImageFolder( root=TRAINSET_DIR, transform=torchvision.transforms.ToTensor())
@@ -174,20 +177,35 @@ class AlexNet(torch.nn.Module):
             torch.save(self, ckpt_path_base + f"_{epoch+1}.ckpt")
             print("Saved epoch: {}".format(epoch+1))
 
-    def test(self):
-        # Test the model
-        with torch.no_grad():
-            correct = 0
-            total = 0
-            for images, labels in test_loader:
-                images = images.to(device)
-                labels = labels.to(device)
-                outputs = self(images)
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
 
-            print('Accuracy of the network on the 10000 test images: {} %'.format(100 * correct / total))
+    def test(self):
+        #self = torch.load("checkpoints/resnet101_50.ckpt")
+        # Test the self
+        self.eval()
+
+        # Output text string
+        output_str = str()
+
+        correct = 0
+        total = 0
+        for images, labels, paths in test_loader:
+            images = images.to(device)
+            labels = labels.to(device)
+            outputs = self(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+            for output, path in list(zip(outputs, paths)):
+                output_str += os.path.basename(path) + ",{:.7f}".format(output[1])
+                output_str += "\n"
+
+        print(f'Accuracy of the network on the {total} test images: {100 * correct / total} %')
+
+        f = open("grader/AUROC/prediction_file.txt", "w+")
+        f.write(output_str.rstrip("\n"))
+        f.close()
+
 
     def test40(self):
         output = ""
@@ -206,26 +224,13 @@ class AlexNet(torch.nn.Module):
                     
                     output += filename + ",{:.7f}".format((outputs[0][1]).item())
 
-                   
         f = open("output.txt","w+")
         f.write(output)
         f.close()
 
 
-def find_latest_checkpoint():
-    if not os.path.exists(CKPT_DIR):
-        os.makedirs(CKPT_DIR)
-        return 0
-
-    ep = 30
-    while(not os.path.exists(CKPT_DIR + "/alex_net" + f"_{ep}.ckpt")):
-        ep -= 1
-        if (ep <= 0):
-            break
-    return ep
-
 if __name__ == "__main__":
-    latest_checkpoint = find_latest_checkpoint()
+    latest_checkpoint = 0
     test40 = True
 
     if (latest_checkpoint == 0):

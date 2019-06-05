@@ -13,15 +13,16 @@ import numpy as np
 import os
 import cv2
 
+import common.dataloader
 from common.constants import *
 
 # Device config
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Hyperparameters
-num_epochs = 30
+num_epochs = 100
 batch_size = 16
-learning_rate = 0.004
+learning_rate = 0.003
 loss_func = nn.CrossEntropyLoss()
 # Optimize function needs nn.Module instance on construction, hence callback function is used.
 optimize_getter = lambda m, m_lr: optim.Adam(m.parameters(), lr=m_lr)
@@ -33,21 +34,24 @@ train_transform = transforms.Compose([torchvision.transforms.RandomHorizontalFli
 
 # Dataset
 train_dataset = torchvision.datasets.ImageFolder(root=TRAINSET_DIR, transform=train_transform)
-test_dataset = torchvision.datasets.ImageFolder(root=TESTSET_DIR, transform=torchvision.transforms.ToTensor())
+#test_dataset = torchvision.datasets.ImageFolder(root=TESTSET_DIR, transform=torchvision.transforms.ToTensor())
+test_dataset = common.dataloader.TestDataSet(root=TESTSET_DIR, transform=torchvision.transforms.ToTensor())
 
 # Data loader
 train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
 test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
 
-model = models.resnet50(pretrained=True)
+model = models.resnet101(pretrained=True)
 num_features = model.fc.in_features
 model.fc = nn.Linear(num_features, 2)
 model = model.to(device)
 
 def train(model, start_epoch=0):
-    ckpt_path_base = CKPT_DIR + "/resnet50"
+    ckpt_path_base = CKPT_DIR + "/resnet101"
 
     optimizer = optimize_getter(model, learning_rate)
+
+    model.train()
 
     # Train the model
     total_step = len(train_loader)
@@ -81,15 +85,21 @@ def train(model, start_epoch=0):
         print ('Epoch [{}/{}], Loss: {:.4f}, Accuracy: {:.4f}%'.format(epoch+1, num_epochs, loss.item(), 100*correct/total))
         total = 0
         correct = 0
-        torch.save(model, ckpt_path_base + f"_{epoch+1}.ckpt")
+        if ((epoch + 1) % 10) == 0:
+            torch.save(model, ckpt_path_base + f"_{epoch+1}.ckpt")
 
 def test(model):
+    #model = torch.load("checkpoints/resnet101_50.ckpt")
     # Test the model
     model.eval()
 
+    # Output text string
+    output_str = str()
+    softmax = torch.nn.Softmax(dim=0)
+
     correct = 0
     total = 0
-    for images, labels in test_loader:
+    for images, labels, paths in test_loader:
         images = images.to(device)
         labels = labels.to(device)
         outputs = model(images)
@@ -97,9 +107,19 @@ def test(model):
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
 
+        for output, path in list(zip(outputs, paths)):
+            output = softmax(output)
+            output_str += os.path.basename(path) + ",{:.7f}".format(output[1])
+            output_str += "\n"
+
     print(f'Accuracy of the network on the {total} test images: {100 * correct / total} %')
 
+    f = open("grader/AUROC/prediction_file.txt", "w+")
+    f.write(output_str.rstrip("\n"))
+    f.close()
+
 def test40(model):
+    model.eval()
     #produce a batch first
     trans = transforms.Compose([torchvision.transforms.ToTensor()])
     images = []
@@ -127,20 +147,9 @@ def test40(model):
     f.write(output)
     f.close()
 
-def find_latest_checkpoint():
-    if not os.path.exists(CKPT_DIR):
-        os.makedirs(CKPT_DIR)
-        return 0
-
-    ep = 30
-    while(not os.path.exists(CKPT_DIR + "/resnet50" + f"_{ep}.ckpt")):
-        ep -= 1
-        if (ep <= 0):
-            break
-    return ep
 
 if __name__ == "__main__":
     train(model)
     test(model)
-    test40(model)
+    #test40(model)
         
