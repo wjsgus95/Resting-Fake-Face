@@ -19,7 +19,8 @@ TRUE_DIR = TRAINSET_DIR + "/True"
 GAN_DIR  = TRAINSET_DIR + "/gan"
 
 # Given test dataset
-TESTSET_DIR = "./sample"
+TESTSET_DIR = "./uniform_testset"
+TESTSET40_DIR = "./sample_test"
 
 # Checkpoint directory
 CKPT_DIR = "checkpoints"

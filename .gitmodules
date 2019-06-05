@@ -1,0 +1,3 @@
+[submodule "grader/AUROC"]
+	path = grader/AUROC
+	url = https://github.com/hyoungseokchu/AUROC.git

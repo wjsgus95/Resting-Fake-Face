@@ -110,3 +110,6 @@ venv.bak/
 FashionMNIST/
 uniform_trainset_diff/
 testset/
+
+# Checkpoints
+checkpoints/

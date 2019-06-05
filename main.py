@@ -244,9 +244,10 @@ class RFF(torch.nn.Module):
 
 
 if __name__ == "__main__":
-    #rff = RFF().to(device)
-    #rff.train()
-    ckpt_path = CKPT_DIR + "/shallownet_v3_20.ckpt"
-    rff = torch.load(ckpt_path).to(device)
-    rff.test()
+    rff = RFF().to(device)
+    rff.train()
+
+    #ckpt_path = CKPT_DIR + "/shallownet_v3_20.ckpt"
+    #rff = torch.load(ckpt_path).to(device)
+    #rff.test()
 
