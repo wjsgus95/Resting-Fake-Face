@@ -7,24 +7,31 @@ import torchvision.transforms as transforms
 import torch.nn.functional as F
 import torch.optim as optim
 
+import numpy as np
+import os
+import cv2
+
+
 from common.constants import *
 
 # Device config
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Hyperparameters
-num_epochs = 30
-batch_size = 16
+num_epochs = 1
+batch_size = 32
 learning_rate = 0.004
 loss_func = nn.CrossEntropyLoss()
 # Optimize function needs nn.Module instance on construction, hence callback function is used.
 optimize_getter = lambda m, m_lr: optim.Adam(m.parameters(), lr=m_lr)
 
+train_transform = transforms.Compose([torchvision.transforms.RandomHorizontalFlip(),
+                                      torchvision.transforms.ColorJitter(),
+                                      torchvision.transforms.ToTensor()])
+
 # Dataset
-train_dataset = torchvision.datasets.ImageFolder( root=TRAINSET_DIR, transform=torchvision.transforms.ToTensor())
-test_dataset = torchvision.datasets.ImageFolder( root=TESTSET_DIR, transform=torchvision.transforms.ToTensor())
-#train_dataset = torchvision.datasets.ImageFolder( root=PRETRAIN_DIR, transform=torchvision.transforms.ToTensor())
-#test_dataset = torchvision.datasets.ImageFolder( root=TRAINSET_DIR, transform=torchvision.transforms.ToTensor())
+train_dataset = torchvision.datasets.ImageFolder(root=TRAINSET_DIR, transform=train_transform)
+test_dataset = torchvision.datasets.ImageFolder(root=TESTSET_DIR, transform=torchvision.transforms.ToTensor())
 
 # Data loader
 train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
@@ -38,35 +45,6 @@ class RFF(torch.nn.Module):
         self.dropout = nn.Dropout()
         self.softmax = nn.Softmax(dim=1)
 
-        """
-        # Block 1
-        self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, stride=1, padding=1, bias=True)
-        self.conv2 = torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1, bias=True)
-        self.conv3 = torch.nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1, bias=True)
-        self.max_pool1 = torch.nn.MaxPool2d(kernel_size=2)
-
-        # Block 2
-        self.conv4 = torch.nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1, bias=True)
-        self.conv5 = torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1, bias=True)
-        self.conv6 = torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1, bias=True)
-        self.max_pool2 = torch.nn.MaxPool2d(kernel_size=2)
-
-        # Block 3
-        self.conv7 = torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1, bias=True)
-        self.conv8 = torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1, bias=True)
-        self.max_pool3 = torch.nn.MaxPool2d(kernel_size=2)
-
-        # Block 4
-        #self.conv9  = torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1, bias=True)
-        #self.conv10 = torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1, bias=True)
-        #self.max_pool4 = torch.nn.MaxPool2d(kernel_size=2)
-
-        # Block 5
-        self.fc1 = torch.nn.Linear(256 * 16 * 16, 2048)
-        #self.fc2 = torch.nn.Linear(2048, 2048)
-        self.batchnorm = nn.BatchNorm1d(2048)
-        self.fc2 = torch.nn.Linear(2048, 2)
-        """
         # Block 1
         self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, stride=1, padding=0, bias=True)
         self.conv2 = torch.nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding=0, bias=True)
@@ -93,53 +71,6 @@ class RFF(torch.nn.Module):
         #torch.save(self, ckpt_path)
 
     def forward(self, x):
-
-        """
-        # Block 1
-        x = self.conv1(x)
-        x = self.relu(x)
-        x = self.dropout(x)
-        x = self.conv2(x)
-        x = self.relu(x)
-        x = self.dropout(x)
-        x = self.conv3(x)
-        x = self.relu(x)
-        x = self.max_pool1(x)
-        x = self.dropout(x)
-
-        # Block 2
-        x = self.conv4(x)
-        x = self.relu(x)
-        x = self.dropout(x)
-        x = self.conv5(x)
-        x = self.relu(x)
-        x = self.dropout(x)
-        x = self.conv6(x)
-        x = self.relu(x)
-        x = self.max_pool2(x)
-        x = self.dropout(x)
-
-        # Block 3
-        x = self.conv7(x)
-        x = self.relu(x)
-        x = self.dropout(x)
-        x = self.conv8(x)
-        x = self.relu(x)
-        x = self.max_pool3(x)
-        x = self.dropout(x)
-
-        # Block 4
-        x = x.view(-1, 256 * 16 * 16)
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.batchnorm(x)
-        x = self.dropout(x)
-        x = self.fc2(x)
-        x = self.relu(x)
-        x = self.fc3(x)
-        x = self.softmax(x)
-        """
-
         # Block 1
         x = self.conv1(x)
         x = self.relu(x)
@@ -185,14 +116,14 @@ class RFF(torch.nn.Module):
 
         return x
 
-    def train(self):
+    def train(self, start_epoch=0):
         ckpt_path_base = CKPT_DIR + "/shallownet_v3"
 
         optimizer = optimize_getter(self, learning_rate)
 
         # Train the model
         total_step = len(train_loader)
-        for epoch in range(num_epochs):
+        for epoch in range(start_epoch, num_epochs):
             total = 0
             correct = 0
             for i, (images, labels) in enumerate(train_loader):
@@ -210,7 +141,7 @@ class RFF(torch.nn.Module):
 
                 # If L1 loss function is applied, do one hot encoding.
                 if type(loss_func) == type(nn.L1Loss()):
-                    labels = F.one_hot(labels, num_classes=10)
+                    labels = F.one_hot(labels, num_classes=2)
                     labels = labels.type(torch.FloatTensor).to(device)
                 loss = loss_func(outputs, labels)
 
@@ -224,10 +155,12 @@ class RFF(torch.nn.Module):
                     print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.4f}%'.format(epoch+1, num_epochs, i+1, total_step, loss.item(), 100*correct/total))
                     total = 0
                     correct = 0
-            if (epoch + 1) % 10 == 0:
-                torch.save(self, ckpt_path_base + f"_{epoch+1}.ckpt")
+            #if (epoch + 1) % 10 == 0:
+            torch.save(self, ckpt_path_base + f"_{epoch+1}.ckpt")
 
     def test(self):
+        #self.eval()
+
         # Test the model
         with torch.no_grad():
             correct = 0
@@ -242,12 +175,8 @@ class RFF(torch.nn.Module):
 
             print(f'Accuracy of the network on the {total} test images: {100 * correct / total} %')
 
-
 if __name__ == "__main__":
     rff = RFF().to(device)
     rff.train()
-
-    #ckpt_path = CKPT_DIR + "/shallownet_v3_20.ckpt"
-    #rff = torch.load(ckpt_path).to(device)
-    #rff.test()
+    rff.test()
 
