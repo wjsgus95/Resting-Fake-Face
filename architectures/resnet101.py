@@ -148,8 +148,3 @@ def test40(model):
     f.close()
 
 
-if __name__ == "__main__":
-    train(model)
-    test(model)
-    #test40(model)
-        

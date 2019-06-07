@@ -139,8 +139,4 @@ def find_latest_checkpoint():
             break
     return ep
 
-if __name__ == "__main__":
-    train(model)
-    test(model)
-    test40(model)
         

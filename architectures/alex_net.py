@@ -229,20 +229,3 @@ class AlexNet(torch.nn.Module):
         f.close()
 
 
-if __name__ == "__main__":
-    latest_checkpoint = 0
-    test40 = True
-
-    if (latest_checkpoint == 0):
-        alex = AlexNet().to(device)
-        alex.train()
-        alex.test()
-    else:
-        ckpt_path = CKPT_DIR + "/alex_net" + f"_{latest_checkpoint}.ckpt"
-        alex = torch.load(ckpt_path).to(device)
-        if (latest_checkpoint < num_epochs):
-            alex.train(start_epoch=latest_checkpoint)
-        if (test40):
-            alex.test40()
-        else:
-            alex.test()

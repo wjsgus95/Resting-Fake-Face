@@ -219,16 +219,3 @@ def find_latest_checkpoint():
             break
     return ep
 
-if __name__ == "__main__":
-    latest_checkpoint = 30  #find_latest_checkpoint()
-
-    if (latest_checkpoint == 0):
-        rff = RFF().to(device)
-        rff.train()
-        rff.test()
-    else:
-        ckpt_path = CKPT_DIR + "/shallownet_v3" + f"_{latest_checkpoint}.ckpt"
-        rff = torch.load(ckpt_path).to(device)
-        rff.test()
-        rff.test40()
-

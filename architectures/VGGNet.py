@@ -170,9 +170,3 @@ class VGGNet(torch.nn.Module):
             print('Accuracy of the network on the 10000 test images: {} %'.format(100 * correct / total))
 
 
-if __name__ == "__main__":
-    vgg = VGGNet().to(device)
-   
-    vgg.train()
-    vgg.test()
-
